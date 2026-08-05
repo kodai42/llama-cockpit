@@ -54,6 +54,7 @@ git clone https://github.com/your-org/llama-cockpit.git
 cd llama-cockpit
 uv sync
 ```
+---
 
 ## Configuration
 
@@ -96,6 +97,8 @@ Then open **http://127.0.0.1:5000** in your browser.
 
 Click **Stop** in the dashboard, or press `Ctrl+C` in the terminal. The backend will gracefully shut down llama-server.
 
+---
+
 ## Project Structure
 
 ```
@@ -117,6 +120,8 @@ llama-cockpit/
 └── README.md
 ```
 
+---
+
 ## Code Quality
 
 ```bash
@@ -129,6 +134,8 @@ uv run flake8 .
 # Tests
 uv run pytest
 ```
+
+---
 
 ## License
 
