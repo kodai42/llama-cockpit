@@ -13,8 +13,6 @@ LLAMA_SERVER = os.environ.get(
     "/path/to/llama.cpp/build/bin/llama-server",
 )
 LLAMA_PIDFILE = os.environ.get("LLAMA_PIDFILE", "/tmp/llama-server.pid")
-LLAMA_LOG = os.environ.get("LLAMA_LOG", "/tmp/llama-server.log")
-
 # ─── Cockpit server ────────────────────────────────────────────────────────────
 
 COCKPIT_HOST = os.environ.get("COCKPIT_HOST", "127.0.0.1")

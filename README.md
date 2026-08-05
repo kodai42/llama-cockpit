@@ -43,7 +43,6 @@ cp .env.example .env
 |---|---|---|
 | `LLAMA_SERVER` | `/path/to/llama.cpp/build/bin/llama-server` | Path to the llama-server binary |
 | `LLAMA_PIDFILE` | `/tmp/llama-server.pid` | PID file for the managed llama-server process |
-| `LLAMA_LOG` | `/tmp/llama-server.log` | Log file path |
 | `COCKPIT_HOST` | `127.0.0.1` | Host for the dashboard web server |
 | `COCKPIT_PORT` | `5000` | Port for the dashboard web server |
 | `LLAMA_PORT` | `8080` | Default port for llama-server |

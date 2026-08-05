@@ -68,9 +68,3 @@ def test_llama_pidfile_default():
     import llama_cockpit.config as cfg
 
     assert cfg.LLAMA_PIDFILE == "/tmp/llama-server.pid"
-
-
-def test_llama_log_default():
-    import llama_cockpit.config as cfg
-
-    assert cfg.LLAMA_LOG == "/tmp/llama-server.log"
