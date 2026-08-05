@@ -1,4 +1,11 @@
+<p align="center">
+  <img src="assets/image_icon.png" alt="Llama Cockpit Logo" width="180">
+</p>
+
+
+
 # Llama Cockpit
+
 
 A lightweight, zero-overhead browser dashboard and management interface for launching, configuring, and monitoring [`llama.cpp`](https://github.com/ggml-org/llama.cpp) servers.
 
