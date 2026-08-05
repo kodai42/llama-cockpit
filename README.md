@@ -1,4 +1,4 @@
-<p align="center">
+<p align="left">
   <img src="assets/image_icon.png" alt="Llama Cockpit Logo" width="180">
 </p>
 
