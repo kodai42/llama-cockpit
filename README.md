@@ -1,24 +1,44 @@
 # Llama Cockpit
 
-Browser dashboard for launching and configuring `llama.cpp` servers.
+A lightweight, zero-overhead browser dashboard and management interface for launching, configuring, and monitoring [`llama.cpp`](https://github.com/ggml-org/llama.cpp) servers.
+
+---
+
+## Why Llama Cockpit?
+
+Most local LLM GUI applications bundle monolithic execution engines and pre-packaged backends. While convenient for standard setups, these heavy wrappers frequently fail on cutting-edge hardware, non-standard toolchains, or custom builds — most notably **AMD Strix Halo (`gfx1151`)** 
+
+**Llama Cockpit takes a backend-agnostic, native approach:**
+
+- ⚡ **Universal Backend Support:** Works seamlessly across ROCm (including AMD Strix Halo / Ryzen AI), CUDA, Metal, and Vulkan by leveraging your native `llama.cpp` build directly.
+- 🪶 **Ultra-Lightweight:** Written in standard Flask with zero heavy frontend framework overhead. Fast to load, minimal resource footprint.
+- 🔍 **Dynamic Capability Detection:** Automatically probes your specific `llama-server` binary to expose only the flags your build actually supports.
+- 🎛️ **Granular Command Control:** Preview the exact CLI flags being passed before launching, eliminating guesswork.
+
+
+---
 
 ## Features
 
-- **Visual parameter control** — context size, GPU offload, threads, batching, speculative decoding, sampling, and more
-- **Auto/Custom modes** — let llama.cpp use defaults or set explicit values per parameter
-- **Model browser** — browse your filesystem and add GGUF models with one click
-- **Per-model profiles** — save and restore parameter configurations per model
-- **Live log viewer** — stream llama-server output in real time
-- **Command preview** — see the exact command before launching
-- **Capability detection** — automatically probes your llama-server build for supported flags
-- **Runtime recovery** — reconnects to a running llama-server after page reload
-- **Responsive** — works on desktop and narrow screens
+- **Visual Parameter Control** — Fine-tune context size, GPU offload layers, CPU threads, batch sizes, speculative decoding, sampling, and FlashAttention.
+- **Auto / Custom Modes** — Rely on `llama-server` defaults or define explicit per-parameter overrides.
+- **Model Browser** — Easily browse system storage and attach GGUF models with one click.
+- **Per-Model Profiles** — Persist and automatically reload parameter configurations for each model.
+- **Live Streaming Logs** — Real-time output stream directly from the active `llama-server` process.
+- **CLI Command Preview** — Inspect the exact generated terminal command before hitting launch.
+- **Capability Auto-Detection** — Automatically probes your `llama-server` binary build to enable only supported feature flags.
+- **Runtime Session Recovery** — Re-attaches to an active, running `llama-server` instance upon web page refresh or browser restart.
+- **Responsive UI** — Modern interface optimized for both wide desktop displays and mobile/narrow viewports.
+
+---
 
 ## Prerequisites
 
 - **Python 3.10+**
-- **llama.cpp** — compiled with `llama-server` binary available
-- **[uv](https://docs.astral.sh/uv/)** — for dependency management
+- **llama.cpp** — Compiled with the `llama-server` binary available on your PATH or build directory.
+- **[uv](https://docs.astral.sh/uv/)** — Recommended for fast, reproducible Python environment management.
+
+---
 
 ## Installation
 
