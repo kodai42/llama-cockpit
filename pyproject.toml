@@ -14,6 +14,7 @@ dependencies = [
 dev = [
     "black>=24.0",
     "flake8>=7.0",
+    "flake8-pyproject>=1.2.4",
     "pytest>=8.0",
 ]
 
@@ -23,7 +24,7 @@ target-version = ["py310"]
 
 [tool.flake8]
 max-line-length = 88
-exclude = [".venv", "app.py"]
+exclude = [".venv"]
 extend-ignore = ["E203", "E501", "F824", "F541"]
 
 [tool.pytest.ini_options]

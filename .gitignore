@@ -18,8 +18,6 @@ env/
 
 # Logs
 *.log
-/tmp/llama-server.pid
-/tmp/llama-server.log
 
 # IDE
 .vscode/

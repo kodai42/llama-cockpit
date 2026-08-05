@@ -620,7 +620,7 @@ def _kill_port_owner(port: int | None) -> None:
         subprocess.run(
             [
                 "bash",
-                "-lc",
+                "-c",
                 f"fuser -k -TERM {int(port)}/tcp >/dev/null 2>&1 || true",
             ],
             check=False,
@@ -629,7 +629,7 @@ def _kill_port_owner(port: int | None) -> None:
         subprocess.run(
             [
                 "bash",
-                "-lc",
+                "-c",
                 f"fuser -k -KILL {int(port)}/tcp >/dev/null 2>&1 || "
                 f"lsof -t -i:{int(port)} | xargs -r kill -KILL >/dev/null 2>&1 || true",
             ],
@@ -784,24 +784,24 @@ def _stop_llama_process():
 # GGUF PARSER
 # =============================================================================
 
+_GGUF_SCALAR_TYPES = {
+    0: ("<B", 1),
+    1: ("<b", 1),
+    2: ("<H", 2),
+    3: ("<h", 2),
+    4: ("<I", 4),
+    5: ("<i", 4),
+    6: ("<f", 4),
+    7: ("<B", 1),
+    10: ("<Q", 8),
+    11: ("<q", 8),
+    12: ("<d", 8),
+}
+
 
 def _read_val(f, vt: int):
-    _SCALAR = {
-        0: ("<B", 1),
-        1: ("<b", 1),
-        2: ("<H", 2),
-        3: ("<h", 2),
-        4: ("<I", 4),
-        5: ("<i", 4),
-        6: ("<f", 4),
-        7: ("<B", 1),
-        10: ("<Q", 8),
-        11: ("<q", 8),
-        12: ("<d", 8),
-    }
-
-    if vt in _SCALAR:
-        fmt, size = _SCALAR[vt]
+    if vt in _GGUF_SCALAR_TYPES:
+        fmt, size = _GGUF_SCALAR_TYPES[vt]
         return struct.unpack(fmt, f.read(size))[0]
 
     if vt == 8:
@@ -816,8 +816,8 @@ def _read_val(f, vt: int):
         if alen > cfg._GGUF_MAX_ARRAY_LEN:
             raise ValueError(f"GGUF array length {alen} exceeds safety cap")
 
-        if atype in _SCALAR:
-            _, size = _SCALAR[atype]
+        if atype in _GGUF_SCALAR_TYPES:
+            _, size = _GGUF_SCALAR_TYPES[atype]
             skip = alen * size
             if skip > 512 * 1024 * 1024:
                 raise ValueError(f"GGUF scalar array too large to skip ({skip} bytes)")
@@ -839,7 +839,11 @@ def _read_val(f, vt: int):
 @app.route("/")
 def index():
     index_file = cfg._INDEX_FILE if os.path.isfile(cfg._INDEX_FILE) else "index.html"
-    return send_from_directory("static", index_file)
+    if index_file != "index.html":
+        directory = os.path.dirname(os.path.abspath(index_file))
+        filename = os.path.basename(index_file)
+        return send_from_directory(directory, filename)
+    return send_from_directory(app.static_folder, "index.html")
 
 
 # =============================================================================
