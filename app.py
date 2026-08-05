@@ -14,7 +14,6 @@ import struct
 import subprocess
 import threading
 import time
-import traceback
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -26,27 +25,29 @@ from flask import Flask, jsonify, request, send_from_directory
 # CONFIGURATION  (all overridable via environment variables)
 # =============================================================================
 
-LLAMA_SERVER  = os.environ.get("LLAMA_SERVER",  "/home/yourname/llama.cpp/build/bin/llama-server")
+LLAMA_SERVER = os.environ.get(
+    "LLAMA_SERVER", "/home/yourname/llama.cpp/build/bin/llama-server"
+)
 LLAMA_PIDFILE = os.environ.get("LLAMA_PIDFILE", "/tmp/llama-server.pid")
-LLAMA_LOG     = os.environ.get("LLAMA_LOG",     "/tmp/llama-server.log")
+LLAMA_LOG = os.environ.get("LLAMA_LOG", "/tmp/llama-server.log")
 
 
 COCKPIT_HOST = os.environ.get("COCKPIT_HOST", "127.0.0.1")
 COCKPIT_PORT = int(os.environ.get("COCKPIT_PORT", "5000"))
 LLAMA_DEFAULT_PORT = int(os.environ.get("LLAMA_PORT", "8080"))
 
-BROWSE_ROOT      = os.path.realpath(os.path.expanduser("~"))
+BROWSE_ROOT = os.path.realpath(os.path.expanduser("~"))
 MODEL_EXTENSIONS = {".gguf", ".bin", ".ggml"}
 
-_MODELS_DIR  = Path.home() / ".config" / "llama-cockpit"
+_MODELS_DIR = Path.home() / ".config" / "llama-cockpit"
 _MODELS_FILE = _MODELS_DIR / "models.json"
 _PARAMS_FILE = _MODELS_DIR / "params.json"
-_CAPS_FILE  = _MODELS_DIR / "server_caps.json"
+_CAPS_FILE = _MODELS_DIR / "server_caps.json"
 _RUNTIME_FILE = _MODELS_DIR / "runtime.json"
-_INDEX_FILE   = os.environ.get("COCKPIT_INDEX_FILE", "index.html")
+_INDEX_FILE = os.environ.get("COCKPIT_INDEX_FILE", "index.html")
 
-_GGUF_MAX_KEY_LEN   = 4096
-_GGUF_MAX_STR_LEN   = 65536
+_GGUF_MAX_KEY_LEN = 4096
+_GGUF_MAX_STR_LEN = 65536
 _GGUF_MAX_ARRAY_LEN = 1_000_000
 
 # =============================================================================
@@ -55,9 +56,11 @@ _GGUF_MAX_ARRAY_LEN = 1_000_000
 
 _LLAMA_MIN_BUILD = 3362
 
+
 def _parse_llama_build(version_output: str) -> int | None:
-    m = re.search(r'(?:version|build)[:\s]+(\d+)', version_output, re.IGNORECASE)
+    m = re.search(r"(?:version|build)[:\s]+(\d+)", version_output, re.IGNORECASE)
     return int(m.group(1)) if m else None
+
 
 _server_caps_lock = threading.Lock()
 
@@ -131,7 +134,10 @@ def _save_server_caps_cache(caps: dict) -> None:
         return
     try:
         _CAPS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"cache_key": key, "caps": _decorate_caps(caps, pending=False, cached=False)}
+        payload = {
+            "cache_key": key,
+            "caps": _decorate_caps(caps, pending=False, cached=False),
+        }
         tmp = _CAPS_FILE.with_suffix(_CAPS_FILE.suffix + ".tmp")
         tmp.write_text(json.dumps(payload, indent=2))
         os.replace(tmp, _CAPS_FILE)
@@ -181,8 +187,11 @@ def _refresh_server_caps_background() -> None:
 
 
 def _start_server_caps_probe() -> None:
-    t = threading.Thread(target=_refresh_server_caps_background, name="server-caps-probe", daemon=True)
+    t = threading.Thread(
+        target=_refresh_server_caps_background, name="server-caps-probe", daemon=True
+    )
     t.start()
+
 
 def _check_server_caps() -> dict:
     supports = {}
@@ -198,7 +207,9 @@ def _check_server_caps() -> dict:
     def run_probe(flag: str):
         return subprocess.run(
             [LLAMA_SERVER, flag],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
 
     # Keep capability detection synchronous for correctness, but run the two
@@ -289,6 +300,7 @@ def _check_server_caps() -> dict:
         "help_error": help_error,
     }
 
+
 # =============================================================================
 # RUNTIME STATE & CLEANUP
 # =============================================================================
@@ -305,6 +317,7 @@ _runtime_lock = threading.Lock()
 _launch_lock = threading.Lock()
 _stop_timer = None
 
+
 def _cleanup_processes(*args):
     global _stop_timer
     if _stop_timer is not None:
@@ -313,7 +326,8 @@ def _cleanup_processes(*args):
     _do_stop_llama()
     if args:
         sys.exit(0)
-    
+
+
 atexit.register(_cleanup_processes)
 try:
     signal.signal(signal.SIGTERM, _cleanup_processes)
@@ -325,11 +339,13 @@ except Exception:
 # MODEL PERSISTENCE
 # =============================================================================
 
+
 def _load_json(path: Path, default):
     try:
         return json.loads(path.read_text())
     except Exception:
         return default
+
 
 def _save_json(path: Path, data) -> None:
     try:
@@ -338,10 +354,22 @@ def _save_json(path: Path, data) -> None:
     except Exception as exc:
         print(f"[warn] Could not save {path.name}: {exc}")
 
-def _load_models() -> list:  return _load_json(_MODELS_FILE, [])
-def _save_models(m: list):   _save_json(_MODELS_FILE, m)
-def _load_params() -> dict:  return _load_json(_PARAMS_FILE, {})
-def _save_params(p: dict):   _save_json(_PARAMS_FILE, p)
+
+def _load_models() -> list:
+    return _load_json(_MODELS_FILE, [])
+
+
+def _save_models(m: list):
+    _save_json(_MODELS_FILE, m)
+
+
+def _load_params() -> dict:
+    return _load_json(_PARAMS_FILE, {})
+
+
+def _save_params(p: dict):
+    _save_json(_PARAMS_FILE, p)
+
 
 _models: list = _load_models()
 _server_caps: dict = _initial_server_caps()
@@ -351,8 +379,10 @@ _start_server_caps_probe()
 # HELPERS
 # =============================================================================
 
+
 def _ts() -> str:
     return time.strftime("%Y-%m-%d %H:%M:%S")
+
 
 def _pid_running(pid: int) -> bool:
     try:
@@ -360,7 +390,8 @@ def _pid_running(pid: int) -> bool:
         return True
     except (ProcessLookupError, PermissionError):
         return False
-        
+
+
 def _read_pidfile(path: str) -> int | None:
     try:
         with open(path) as f:
@@ -372,15 +403,18 @@ def _read_pidfile(path: str) -> int | None:
         pass
     return None
 
+
 def _write_pidfile(path: str, pid: int) -> None:
     with open(path, "w") as f:
         f.write(str(pid))
+
 
 def _remove_pidfile(path: str) -> None:
     try:
         os.remove(path)
     except FileNotFoundError:
         pass
+
 
 def _stream_log(proc, buf: deque, label: str) -> None:
     try:
@@ -391,13 +425,21 @@ def _stream_log(proc, buf: deque, label: str) -> None:
         pass
     buf.append({"t": _ts(), "text": f"[{label}] process ended.", "cls": "warn"})
 
+
 def _classify(line: str) -> str:
     low = line.lower()
-    if any(w in low for w in ("error", "failed", "abort", "fatal")): return "err"
-    if any(w in low for w in ("warning", "warn")): return "warn"
-    if any(w in low for w in ("listening", "ready", "ok", "started", "running", "health")): return "ok"
-    if line.startswith("[") or "llama_" in low or "slot" in low: return "info"
+    if any(w in low for w in ("error", "failed", "abort", "fatal")):
+        return "err"
+    if any(w in low for w in ("warning", "warn")):
+        return "warn"
+    if any(
+        w in low for w in ("listening", "ready", "ok", "started", "running", "health")
+    ):
+        return "ok"
+    if line.startswith("[") or "llama_" in low or "slot" in low:
+        return "info"
     return "dim"
+
 
 def _poll_health(url: str, timeout: int = 60) -> bool:
     deadline = time.time() + timeout
@@ -409,8 +451,11 @@ def _poll_health(url: str, timeout: int = 60) -> bool:
             pass
         time.sleep(1)
     return False
-    
-def _port_is_open(port: int | None, host: str = "127.0.0.1", timeout: float = 0.5) -> bool:
+
+
+def _port_is_open(
+    port: int | None, host: str = "127.0.0.1", timeout: float = 0.5
+) -> bool:
     """Return True if something is listening on host:port."""
     if port is None:
         return False
@@ -490,7 +535,6 @@ def _service_port_valid(port: int | None, *, require_health: bool = False) -> bo
     if _health_ok(port):
         return True
     return False if require_health else _port_is_open(port)
-
 
 
 def _recover_runtime_service(
@@ -575,14 +619,18 @@ def _requested_llama_port(data: dict) -> int:
         value = data.get("llamaPort")
         if value is None or (isinstance(value, str) and value.strip() == ""):
             raise ValueError("llama-server port is required.")
-    return _parse_port(data.get("llamaPort", LLAMA_DEFAULT_PORT), LLAMA_DEFAULT_PORT, "llama-server port")
-
-
+    return _parse_port(
+        data.get("llamaPort", LLAMA_DEFAULT_PORT),
+        LLAMA_DEFAULT_PORT,
+        "llama-server port",
+    )
 
 
 def _validate_llama_port_for_launch(port: int, data: dict) -> None:
     if port == COCKPIT_PORT:
-        raise ValueError(f"Cannot launch llama-server on port {port}: that port is used by Llama Cockpit.")
+        raise ValueError(
+            f"Cannot launch llama-server on port {port}: that port is used by Llama Cockpit."
+        )
     if _port_is_open(port):
         raise ValueError(f"Cannot launch llama-server: port {port} is already in use.")
 
@@ -627,12 +675,17 @@ def _kill_port_owner(port: int | None) -> None:
         )
         time.sleep(2.0)
         subprocess.run(
-            ["bash", "-lc", f"fuser -k -KILL {int(port)}/tcp >/dev/null 2>&1 || "
-                            f"lsof -t -i:{int(port)} | xargs -r kill -KILL >/dev/null 2>&1 || true"],
+            [
+                "bash",
+                "-lc",
+                f"fuser -k -KILL {int(port)}/tcp >/dev/null 2>&1 || "
+                f"lsof -t -i:{int(port)} | xargs -r kill -KILL >/dev/null 2>&1 || true",
+            ],
             check=False,
         )
     except Exception as exc:
         print(f"[warn] Failed to kill TCP port owner for {port}: {exc}")
+
 
 def _stop_process(proc, pidfile, log_buf, binary_path, label, kill_port=None):
     """
@@ -650,11 +703,13 @@ def _stop_process(proc, pidfile, log_buf, binary_path, label, kill_port=None):
         attempted = True
         try:
             if proc.poll() is None:
-                log_buf.append({
-                    "t": _ts(),
-                    "text": f"Stopping {label}: sending SIGTERM to wrapper PID {proc.pid}…",
-                    "cls": "warn",
-                })
+                log_buf.append(
+                    {
+                        "t": _ts(),
+                        "text": f"Stopping {label}: sending SIGTERM to wrapper PID {proc.pid}…",
+                        "cls": "warn",
+                    }
+                )
 
                 # First: polite termination of the wrapper.
                 proc.terminate()
@@ -690,11 +745,13 @@ def _stop_process(proc, pidfile, log_buf, binary_path, label, kill_port=None):
     if pid and _pid_running(pid):
         attempted = True
         try:
-            log_buf.append({
-                "t": _ts(),
-                "text": f"Stopping {label}: sending SIGTERM to PID {pid}…",
-                "cls": "warn",
-            })
+            log_buf.append(
+                {
+                    "t": _ts(),
+                    "text": f"Stopping {label}: sending SIGTERM to PID {pid}…",
+                    "cls": "warn",
+                }
+            )
 
             os.kill(pid, signal.SIGTERM)
 
@@ -739,11 +796,13 @@ def _stop_process(proc, pidfile, log_buf, binary_path, label, kill_port=None):
     if kill_port is not None:
         if not _wait_until_port_closed(kill_port, timeout=3.0):
             port_still_open = True
-            log_buf.append({
-                "t": _ts(),
-                "text": f"{label} port {kill_port} is still open; killing port owner…",
-                "cls": "warn",
-            })
+            log_buf.append(
+                {
+                    "t": _ts(),
+                    "text": f"{label} port {kill_port} is still open; killing port owner…",
+                    "cls": "warn",
+                }
+            )
 
             _kill_port_owner(kill_port)
 
@@ -754,17 +813,21 @@ def _stop_process(proc, pidfile, log_buf, binary_path, label, kill_port=None):
 
     if ok:
         _remove_pidfile(pidfile)
-        log_buf.append({
-            "t": _ts(),
-            "text": f"{label} stopped.",
-            "cls": "warn",
-        })
+        log_buf.append(
+            {
+                "t": _ts(),
+                "text": f"{label} stopped.",
+                "cls": "warn",
+            }
+        )
     else:
-        log_buf.append({
-            "t": _ts(),
-            "text": f"{label} did not stop cleanly. pid_running={pid_still_running}, port_open={port_still_open}",
-            "cls": "err",
-        })
+        log_buf.append(
+            {
+                "t": _ts(),
+                "text": f"{label} did not stop cleanly. pid_running={pid_still_running}, port_open={port_still_open}",
+                "cls": "err",
+            }
+        )
 
     return {
         "ok": ok,
@@ -795,36 +858,47 @@ def _stop_llama_process():
     return result
 
 
-
 # =============================================================================
 # GGUF PARSER
 # =============================================================================
 
+
 def _read_val(f, vt: int):
     _SCALAR = {
-        0: ('<B', 1), 1: ('<b', 1), 2: ('<H', 2),  3: ('<h', 2),
-        4: ('<I', 4), 5: ('<i', 4), 6: ('<f', 4),  7: ('<B', 1),
-        10: ('<Q', 8), 11: ('<q', 8), 12: ('<d', 8),
+        0: ("<B", 1),
+        1: ("<b", 1),
+        2: ("<H", 2),
+        3: ("<h", 2),
+        4: ("<I", 4),
+        5: ("<i", 4),
+        6: ("<f", 4),
+        7: ("<B", 1),
+        10: ("<Q", 8),
+        11: ("<q", 8),
+        12: ("<d", 8),
     }
-    
+
     if vt in _SCALAR:
         fmt, size = _SCALAR[vt]
         return struct.unpack(fmt, f.read(size))[0]
 
     if vt == 8:
-        slen = struct.unpack('<Q', f.read(8))[0]
-        if slen > _GGUF_MAX_STR_LEN: raise ValueError(f"GGUF string length {slen} exceeds safety cap")
-        return f.read(slen).decode('utf-8', 'ignore')
+        slen = struct.unpack("<Q", f.read(8))[0]
+        if slen > _GGUF_MAX_STR_LEN:
+            raise ValueError(f"GGUF string length {slen} exceeds safety cap")
+        return f.read(slen).decode("utf-8", "ignore")
 
     if vt == 9:
-        atype = struct.unpack('<I', f.read(4))[0]
-        alen  = struct.unpack('<Q', f.read(8))[0]
-        if alen > _GGUF_MAX_ARRAY_LEN: raise ValueError(f"GGUF array length {alen} exceeds safety cap")
-        
+        atype = struct.unpack("<I", f.read(4))[0]
+        alen = struct.unpack("<Q", f.read(8))[0]
+        if alen > _GGUF_MAX_ARRAY_LEN:
+            raise ValueError(f"GGUF array length {alen} exceeds safety cap")
+
         if atype in _SCALAR:
             _, size = _SCALAR[atype]
             skip = alen * size
-            if skip > 512 * 1024 * 1024: raise ValueError(f"GGUF scalar array too large to skip ({skip} bytes)")
+            if skip > 512 * 1024 * 1024:
+                raise ValueError(f"GGUF scalar array too large to skip ({skip} bytes)")
             f.seek(skip, os.SEEK_CUR)
             return None
 
@@ -834,22 +908,27 @@ def _read_val(f, vt: int):
 
     raise ValueError(f"Unknown GGUF value type {vt}")
 
+
 # =============================================================================
 # ROUTES — static
 # =============================================================================
+
 
 @app.route("/")
 def index():
     index_file = _INDEX_FILE if os.path.isfile(_INDEX_FILE) else "index.html"
     return send_from_directory(".", index_file)
 
+
 # =============================================================================
 # ROUTES — system & model info
 # =============================================================================
 
+
 @app.route("/api/system")
 def api_system():
     return jsonify({"cpu_count": os.cpu_count() or 8})
+
 
 @app.route("/api/model_info")
 def api_model_info():
@@ -865,44 +944,55 @@ def api_model_info():
     res = {"architecture": "unknown", "context_length": 8192, "block_count": 99}
 
     try:
-        with open(real_path, 'rb') as f:
-            if f.read(4) != b'GGUF': return jsonify(res)
+        with open(real_path, "rb") as f:
+            if f.read(4) != b"GGUF":
+                return jsonify(res)
             f.read(4)
             f.read(8)
-            kv_count = struct.unpack('<Q', f.read(8))[0]
+            kv_count = struct.unpack("<Q", f.read(8))[0]
 
             for _ in range(min(kv_count, 1500)):
                 raw_klen = f.read(8)
-                if len(raw_klen) < 8: break
-                key_len = struct.unpack('<Q', raw_klen)[0]
-                if key_len > _GGUF_MAX_KEY_LEN: break
-                key = f.read(key_len).decode('utf-8', 'ignore')
+                if len(raw_klen) < 8:
+                    break
+                key_len = struct.unpack("<Q", raw_klen)[0]
+                if key_len > _GGUF_MAX_KEY_LEN:
+                    break
+                key = f.read(key_len).decode("utf-8", "ignore")
 
                 raw_vtype = f.read(4)
-                if len(raw_vtype) < 4: break
-                vtype = struct.unpack('<I', raw_vtype)[0]
+                if len(raw_vtype) < 4:
+                    break
+                vtype = struct.unpack("<I", raw_vtype)[0]
 
                 try:
                     val = _read_val(f, vtype)
                 except (struct.error, ValueError):
                     break
 
-                if key == "general.architecture" and isinstance(val, str): res["architecture"] = val
-                elif key.endswith(".context_length") and isinstance(val, int): res["context_length"] = val
-                elif key.endswith(".block_count") and isinstance(val, int): res["block_count"] = val
+                if key == "general.architecture" and isinstance(val, str):
+                    res["architecture"] = val
+                elif key.endswith(".context_length") and isinstance(val, int):
+                    res["context_length"] = val
+                elif key.endswith(".block_count") and isinstance(val, int):
+                    res["block_count"] = val
 
     except Exception as exc:
-        print(f"[warn] Failed to parse GGUF metadata for {os.path.basename(real_path)}: {exc}")
+        print(
+            f"[warn] Failed to parse GGUF metadata for {os.path.basename(real_path)}: {exc}"
+        )
 
     return jsonify(res)
+
 
 # =============================================================================
 # ROUTES — filesystem browser
 # =============================================================================
 
+
 @app.route("/api/browse")
 def api_browse():
-    raw  = request.args.get("path", BROWSE_ROOT)
+    raw = request.args.get("path", BROWSE_ROOT)
     kind = request.args.get("kind", "model")
     path = os.path.realpath(raw)
 
@@ -921,7 +1011,7 @@ def api_browse():
         if entry.name.startswith(".") and kind != "config":
             continue
         try:
-            is_dir  = entry.is_dir(follow_symlinks=True)
+            is_dir = entry.is_dir(follow_symlinks=True)
             is_file = entry.is_file(follow_symlinks=True)
         except OSError:
             continue
@@ -941,33 +1031,46 @@ def api_browse():
     parent = str(os.path.dirname(path)) if path != BROWSE_ROOT else None
     return jsonify({"path": path, "parent": parent, "dirs": dirs, "files": files})
 
+
 # =============================================================================
 # ROUTES — model registry
 # =============================================================================
 
+
 @app.route("/api/models")
 def api_models():
     with _models_lock:
-        return jsonify([
-            {"name": m["name"], "path": m["path"], "exists": os.path.isfile(m["path"])}
-            for m in _models
-        ])
+        return jsonify(
+            [
+                {
+                    "name": m["name"],
+                    "path": m["path"],
+                    "exists": os.path.isfile(m["path"]),
+                }
+                for m in _models
+            ]
+        )
+
 
 @app.route("/api/add_model", methods=["POST"])
 def api_add_model():
     data = request.json or {}
     path = data.get("path", "").strip()
-    
-    if not path: return jsonify({"ok": False, "error": "No path provided"}), 400
-    if os.path.splitext(path)[1].lower() not in MODEL_EXTENSIONS: return jsonify({"ok": False, "error": "Unsupported extension"}), 400
-    
+
+    if not path:
+        return jsonify({"ok": False, "error": "No path provided"}), 400
+    if os.path.splitext(path)[1].lower() not in MODEL_EXTENSIONS:
+        return jsonify({"ok": False, "error": "Unsupported extension"}), 400
+
     with _models_lock:
-        if any(m["path"] == path for m in _models): return jsonify({"ok": False, "error": "Model already in list"}), 409
+        if any(m["path"] == path for m in _models):
+            return jsonify({"ok": False, "error": "Model already in list"}), 409
         name = data.get("name", "").strip() or os.path.basename(path)
         _models.append({"name": name, "path": path})
         _save_models(_models)
-        
+
     return jsonify({"ok": True, "name": name, "path": path})
+
 
 @app.route("/api/remove_model", methods=["POST"])
 def api_remove_model():
@@ -975,7 +1078,8 @@ def api_remove_model():
     with _models_lock:
         before = len(_models)
         _models[:] = [m for m in _models if m["path"] != path]
-        if len(_models) == before: return jsonify({"ok": False, "error": "Model not found"}), 404
+        if len(_models) == before:
+            return jsonify({"ok": False, "error": "Model not found"}), 404
         _save_models(_models)
     return jsonify({"ok": True})
 
@@ -985,15 +1089,60 @@ def api_remove_model():
 # =============================================================================
 
 _MODE_AWARE_KEYS = {
-    "ctx", "ngl", "parallel", "alias", "llamaWebui", "batch", "ubatch", "threads", "threadsBatch",
-    "fa", "perf", "mmap", "mlock", "contBatching", "directIo", "numa", "device",
-    "kvK", "kvV", "kvUnified", "kvOffload", "cachePrompt", "cacheReuse",
-    "specType", "draftNgl", "specDraftNMin", "specDraftNMax", "specDraftPMin", "specDraftPSplit",
-    "specDraftCacheK", "specDraftCacheV", "temp", "topP", "topK", "minP",
-    "repeatPenalty", "presencePenalty", "frequencyPenalty", "ropeBase", "ropeScale",
+    "ctx",
+    "ngl",
+    "parallel",
+    "alias",
+    "llamaWebui",
+    "batch",
+    "ubatch",
+    "threads",
+    "threadsBatch",
+    "fa",
+    "perf",
+    "mmap",
+    "mlock",
+    "contBatching",
+    "directIo",
+    "numa",
+    "device",
+    "kvK",
+    "kvV",
+    "kvUnified",
+    "kvOffload",
+    "cachePrompt",
+    "cacheReuse",
+    "specType",
+    "draftNgl",
+    "specDraftNMin",
+    "specDraftNMax",
+    "specDraftPMin",
+    "specDraftPSplit",
+    "specDraftCacheK",
+    "specDraftCacheV",
+    "temp",
+    "topP",
+    "topK",
+    "minP",
+    "repeatPenalty",
+    "presencePenalty",
+    "frequencyPenalty",
+    "ropeBase",
+    "ropeScale",
 }
 _APP_BOOL_KEYS = set()
-_TRI_KEYS = {"llamaWebui", "fa", "perf", "mmap", "mlock", "contBatching", "directIo", "kvUnified", "kvOffload", "cachePrompt"}
+_TRI_KEYS = {
+    "llamaWebui",
+    "fa",
+    "perf",
+    "mmap",
+    "mlock",
+    "contBatching",
+    "directIo",
+    "kvUnified",
+    "kvOffload",
+    "cachePrompt",
+}
 
 
 def _mode_entry(value, default_mode="auto") -> dict:
@@ -1078,9 +1227,12 @@ def _add_flag(cmd: list[str], flag):
 def _build_llama_command(data: dict, model: str, port: int) -> list[str]:
     cmd = [
         LLAMA_SERVER,
-        "-m", model,
-        "--port", str(port),
-        "--host", "127.0.0.1",
+        "-m",
+        model,
+        "--port",
+        str(port),
+        "--host",
+        "127.0.0.1",
     ]
 
     def missing_value(value) -> bool:
@@ -1089,7 +1241,9 @@ def _build_llama_command(data: dict, model: str, port: int) -> list[str]:
     def require_value(key):
         value = _val(data, key)
         if missing_value(value):
-            raise ValueError(f"Value required for {key}. Either enter a value or re-enable Auto.")
+            raise ValueError(
+                f"Value required for {key}. Either enter a value or re-enable Auto."
+            )
         return value
 
     def add_num(key, flag, cast=str):
@@ -1162,7 +1316,9 @@ def _build_llama_command(data: dict, model: str, port: int) -> list[str]:
     draft_model = str(data.get("draftModelPath", "") or "").strip()
 
     if spec_mode == "custom" and spec_type in {"", "auto"}:
-        raise ValueError("Value required for specType. Either select a speculative decoding type or re-enable Auto.")
+        raise ValueError(
+            "Value required for specType. Either select a speculative decoding type or re-enable Auto."
+        )
 
     if spec_mode == "custom" and spec_type not in {"off", "none"}:
         cmd.extend(["--spec-type", spec_type])
@@ -1205,7 +1361,9 @@ def _build_llama_command(data: dict, model: str, port: int) -> list[str]:
     if ui_config_mode == "on":
         ui_config_path = str(ui_config_entry.get("value", "") or "").strip()
         if not ui_config_path:
-            raise ValueError("UI config file is enabled, but no config file was selected")
+            raise ValueError(
+                "UI config file is enabled, but no config file was selected"
+            )
         ui_config_path = os.path.realpath(os.path.expanduser(ui_config_path))
         if not os.path.isfile(ui_config_path):
             raise ValueError(f"UI config file not found: {ui_config_path}")
@@ -1223,7 +1381,9 @@ def _build_llama_command(data: dict, model: str, port: int) -> list[str]:
     if kwargs:
         if not isinstance(kwargs, dict):
             raise ValueError("Template kwargs must be a JSON object")
-        cmd.extend(["--chat-template-kwargs", json.dumps(kwargs, separators=(",", ":"))])
+        cmd.extend(
+            ["--chat-template-kwargs", json.dumps(kwargs, separators=(",", ":"))]
+        )
 
     extra_text = str(other.get("extraArgs", "") or "").strip()
     if extra_text:
@@ -1238,9 +1398,11 @@ def _build_llama_command(data: dict, model: str, port: int) -> list[str]:
 
     return cmd
 
+
 # =============================================================================
 # ROUTES — status & launch
 # =============================================================================
+
 
 @app.route("/api/status")
 def api_status():
@@ -1248,52 +1410,66 @@ def api_status():
     llama_pid = recovered["llama"]["pid"]
 
     cockpit_url = _local_url(COCKPIT_PORT)
-    return jsonify({
-        "cockpit": {
-            "port": COCKPIT_PORT,
-            "url": cockpit_url,
-        },
-        "llama": {
-            "running": llama_pid is not None,
-            "pid": llama_pid,
-            "port": _llama_port,
-            "url": _local_url(_llama_port) if llama_pid is not None and _llama_port is not None else None,
-        },
-    })
-    
+    return jsonify(
+        {
+            "cockpit": {
+                "port": COCKPIT_PORT,
+                "url": cockpit_url,
+            },
+            "llama": {
+                "running": llama_pid is not None,
+                "pid": llama_pid,
+                "port": _llama_port,
+                "url": (
+                    _local_url(_llama_port)
+                    if llama_pid is not None and _llama_port is not None
+                    else None
+                ),
+            },
+        }
+    )
+
+
 @app.route("/api/server_caps")
 def api_server_caps():
     return jsonify(_get_server_caps())
-    
+
+
 @app.route("/api/params")
 def api_get_params():
     model_path = request.args.get("path", "").strip()
-    if not model_path: return jsonify({}), 400
+    if not model_path:
+        return jsonify({}), 400
     return jsonify(_migrate_saved_params(_load_params().get(model_path) or {}))
+
 
 @app.route("/api/params", methods=["POST"])
 def api_save_params():
     data = request.json or {}
     model_path = data.get("model_path", "").strip()
-    params     = data.get("params", {})
-    if not model_path: return jsonify({"ok": False, "error": "No model_path provided"}), 400
+    params = data.get("params", {})
+    if not model_path:
+        return jsonify({"ok": False, "error": "No model_path provided"}), 400
     with _params_lock:
         all_params = _load_params()
         all_params[model_path] = params
         _save_params(all_params)
     return jsonify({"ok": True})
-    
+
+
 @app.route("/api/clear_params", methods=["POST"])
 def api_clear_params():
     data = request.json or {}
     model_path = data.get("model_path", "").strip()
-    if not model_path: return jsonify({"ok": False, "error": "No model_path provided"}), 400
+    if not model_path:
+        return jsonify({"ok": False, "error": "No model_path provided"}), 400
     with _params_lock:
         all_params = _load_params()
         if model_path in all_params:
             del all_params[model_path]
             _save_params(all_params)
     return jsonify({"ok": True})
+
 
 @app.route("/api/preview_command", methods=["POST"])
 def api_preview_command():
@@ -1306,24 +1482,42 @@ def api_preview_command():
         cmd = _build_llama_command(data, model, port)
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
-    return jsonify({"ok": True, "cmd": cmd, "command": " ".join(shlex.quote(str(x)) for x in cmd)})
+    return jsonify(
+        {"ok": True, "cmd": cmd, "command": " ".join(shlex.quote(str(x)) for x in cmd)}
+    )
+
 
 @app.route("/api/launch", methods=["POST"])
 def api_launch():
     global _llama_proc, _llama_port
-    if not _launch_lock.acquire(blocking=False): return jsonify({"ok": False, "error": "Launch already in progress"}), 409
+    if not _launch_lock.acquire(blocking=False):
+        return jsonify({"ok": False, "error": "Launch already in progress"}), 409
     try:
         _recover_llama_runtime()
-        if _read_pidfile(LLAMA_PIDFILE): return jsonify({"ok": False, "error": "llama-server is already running"}), 400
+        if _read_pidfile(LLAMA_PIDFILE):
+            return (
+                jsonify({"ok": False, "error": "llama-server is already running"}),
+                400,
+            )
         caps = _get_server_caps()
         if not caps.get("ok"):
             status = 503 if caps.get("pending") else 500
-            return jsonify({"ok": False, "pending": bool(caps.get("pending")), "error": caps.get("error", "check failed.")}), status
-        
-        data  = request.json or {}
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "pending": bool(caps.get("pending")),
+                        "error": caps.get("error", "check failed."),
+                    }
+                ),
+                status,
+            )
+
+        data = request.json or {}
         model = data.get("model_path", "")
-        if not model or not os.path.isfile(model): return jsonify({"ok": False, "error": "Model file missing"}), 400
-        
+        if not model or not os.path.isfile(model):
+            return jsonify({"ok": False, "error": "Model file missing"}), 400
+
         try:
             port = _requested_llama_port(data)
             _validate_llama_port_for_launch(port, data)
@@ -1332,58 +1526,94 @@ def api_launch():
             return jsonify({"ok": False, "error": str(exc)}), 400
 
         LOG_LLAMA.clear()
-        LOG_LLAMA.append({"t": _ts(), "text": f"Using configured port {port}.", "cls": "info"})
-        LOG_LLAMA.append({"t": _ts(), "text": "Launching: " + " ".join(shlex.quote(str(x)) for x in cmd), "cls": "dim"})
+        LOG_LLAMA.append(
+            {"t": _ts(), "text": f"Using configured port {port}.", "cls": "info"}
+        )
+        LOG_LLAMA.append(
+            {
+                "t": _ts(),
+                "text": "Launching: " + " ".join(shlex.quote(str(x)) for x in cmd),
+                "cls": "dim",
+            }
+        )
 
         try:
-            _llama_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, start_new_session=True)
+            _llama_proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                start_new_session=True,
+            )
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc)}), 500
 
         _write_pidfile(LLAMA_PIDFILE, _llama_proc.pid)
         _llama_port = port
         _persist_runtime_service("llama", _llama_proc.pid, port)
-        threading.Thread(target=_stream_log, args=(_llama_proc, LOG_LLAMA, "llama-server"), daemon=True).start()
+        threading.Thread(
+            target=_stream_log,
+            args=(_llama_proc, LOG_LLAMA, "llama-server"),
+            daemon=True,
+        ).start()
         direct_url = _local_url(port)
-        return jsonify({"ok": True, "pid": _llama_proc.pid, "port": port, "direct_url": direct_url})
+        return jsonify(
+            {"ok": True, "pid": _llama_proc.pid, "port": port, "direct_url": direct_url}
+        )
     finally:
         _launch_lock.release()
-        
+
+
 @app.route("/api/wait_llama")
 def api_wait_llama():
     if _llama_port is None:
         _recover_llama_runtime()
-    if _llama_port is None: return jsonify({"ok": False, "error": "not started"})
+    if _llama_port is None:
+        return jsonify({"ok": False, "error": "not started"})
     return jsonify({"ok": _poll_health(f"http://127.0.0.1:{_llama_port}/health", 60)})
-    
-        
 
-    
+
 @app.route("/api/stop_llama", methods=["POST"])
 def api_stop_llama():
     result = _stop_llama_process()
 
     if not result["ok"]:
-        return jsonify({
-            "ok": False,
-            "error": "llama-server did not stop cleanly",
-            "details": result,
-        }), 500
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "llama-server did not stop cleanly",
+                    "details": result,
+                }
+            ),
+            500,
+        )
 
     pid = result.get("pid")
-    return jsonify({
-        "ok": True,
-        "stopped": [f"llama-server (PID {pid})"] if pid else ["llama-server"],
-    })
+    return jsonify(
+        {
+            "ok": True,
+            "stopped": [f"llama-server (PID {pid})"] if pid else ["llama-server"],
+        }
+    )
 
 
 def _do_stop_llama():
     result = _stop_llama_process()
     pid = result.get("pid")
-    return [f"llama-server (PID {pid})" if pid else "llama-server"] if result.get("ok") else []
+    return (
+        [f"llama-server (PID {pid})" if pid else "llama-server"]
+        if result.get("ok")
+        else []
+    )
+
 
 def _auto_shutdown_trigger():
-    print("\n[!] No heartbeat received from dashboard for 6 seconds. Cleaning up...", flush=True)
+    print(
+        "\n[!] No heartbeat received from dashboard for 6 seconds. Cleaning up...",
+        flush=True,
+    )
 
     try:
         _do_stop_llama()
@@ -1391,20 +1621,24 @@ def _auto_shutdown_trigger():
         print("[!] Dashboard is gone. Exiting backend...", flush=True)
         os._exit(0)
 
+
 @app.route("/api/heartbeat", methods=["POST"])
 def api_heartbeat():
     global _stop_timer
-    if _stop_timer is not None: _stop_timer.cancel()
+    if _stop_timer is not None:
+        _stop_timer.cancel()
     _stop_timer = threading.Timer(6.0, _auto_shutdown_trigger)
     _stop_timer.start()
     return jsonify({"ok": True})
+
 
 @app.route("/api/logs")
 def api_logs():
     since = int(request.args.get("since", 0))
     lines = list(LOG_LLAMA)
     return jsonify({"lines": lines[since:], "total": len(lines)})
-    
+
+
 # =============================================================================
 # ENTRY POINT
 # =============================================================================
@@ -1420,7 +1654,9 @@ if __name__ == "__main__":
         print(f"  Server build: CAPABILITY CHECK FAILED")
         print(f"  Reason      : {caps.get('error')}")
     elif caps.get("cached"):
-        print(f"  Server build: b{caps.get('build')} (cached; refreshing in background)")
+        print(
+            f"  Server build: b{caps.get('build')} (cached; refreshing in background)"
+        )
     print("=" * 60)
     _stop_timer = threading.Timer(15.0, _auto_shutdown_trigger)
     _stop_timer.start()
