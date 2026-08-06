@@ -22,8 +22,11 @@ Most local LLM GUI applications bundle monolithic execution engines and pre-pack
 - 🔍 **Dynamic Capability Detection:** Automatically probes your specific `llama-server` binary to expose only the flags your build actually supports.
 - 🎛️ **Granular Command Control:** Preview the exact CLI flags being passed before launching, eliminating guesswork.
 
-
 ---
+
+<p align="left">
+  <img src="assets/image_screenshot.png" alt="Llama Cockpit Logo" width="1000">
+</p>
 
 ## Features
 
